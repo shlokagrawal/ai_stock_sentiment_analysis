@@ -4,6 +4,7 @@ from app.models.stock import Stock, user_stocks
 from app.models.user import User
 from app.utils.auth import token_required, admin_required
 from app.services.stock_service import fetch_stock_data
+from app.utils.cache import StockCache
 
 stock_bp = Blueprint('stocks', __name__)
 
@@ -205,4 +206,94 @@ def remove_from_watchlist(current_user, stock_id):
     
     return jsonify({
         'message': 'Stock removed from watchlist successfully'
-    }), 200 
+    }), 200
+
+@stock_bp.route('/search', methods=['POST'])
+@token_required
+def search_stock(current_user):
+    """
+    Search for a stock by symbol and analyze it (create if not exists)
+    Uses Yahoo Finance API and caching to avoid excessive API calls
+    """
+    data = request.get_json()
+    
+    if not data or 'symbol' not in data:
+        return jsonify({'error': 'No symbol provided'}), 400
+    
+    symbol = data['symbol'].upper()
+    
+    # Try to get from cache first (fast)
+    cached_stock = StockCache.get(symbol)
+    if cached_stock:
+        return jsonify({
+            'stock': cached_stock,
+            'source': 'cache'
+        }), 200
+    
+    # Next, try to find the stock in our database
+    stock = Stock.query.filter_by(symbol=symbol).first()
+    
+    if stock:
+        # Cache the stock data for future requests
+        stock_dict = stock.to_dict()
+        StockCache.set(symbol, stock_dict)
+        return jsonify({
+            'stock': stock_dict,
+            'source': 'database'
+        }), 200
+    
+    # Stock not found in database, fetch from Yahoo Finance
+    stock_data = fetch_stock_data(symbol)
+    
+    if not stock_data:
+        return jsonify({'error': f'Could not find stock with symbol {symbol}'}), 404
+        
+    try:
+        # Create a new stock record
+        new_stock = Stock(
+            symbol=symbol,
+            name=stock_data.get('name', f"{symbol} Inc."),
+            sector=stock_data.get('sector', 'Technology'),
+            current_price=stock_data.get('current_price', 0.0),
+            previous_close=stock_data.get('previous_close', 0.0),
+            market_cap=stock_data.get('market_cap', 0),
+            volume=stock_data.get('volume', 0)
+        )
+        
+        db.session.add(new_stock)
+        db.session.commit()
+        
+        # Cache the new stock data
+        new_stock_dict = new_stock.to_dict()
+        StockCache.set(symbol, new_stock_dict)
+        
+        # In a real implementation, we would trigger background tasks for:
+        # 1. Scrape news for sentiment analysis
+        # 2. Generate recommendation
+        # For demonstration, we'll handle this synchronously using a thread
+        from threading import Thread
+        
+        def background_tasks(stock_id):
+            try:
+                # Import here to avoid circular imports
+                from app.routes.sentiment_routes import refresh_sentiment
+                refresh_sentiment(current_user, stock_id)
+                
+                # Import recommendation service
+                from app.services.recommendation_service import generate_recommendation
+                generate_recommendation(stock_id)
+            except Exception as e:
+                print(f"Error in background tasks: {str(e)}")
+        
+        # Start background tasks in a separate thread
+        Thread(target=background_tasks, args=(new_stock.id,)).start()
+        
+        return jsonify({
+            'stock': new_stock_dict,
+            'source': 'yahoo_finance',
+            'message': 'Stock added to database. Sentiment analysis and recommendations are being generated.'
+        }), 201
+        
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'error': f'Failed to create stock: {str(e)}'}), 500 

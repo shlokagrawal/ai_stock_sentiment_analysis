@@ -208,4 +208,83 @@ export const compareStocks = async (stockIds, days = 7) => {
       error: error.response?.data?.error || 'Failed to compare stocks',
     };
   }
+};
+
+// Live Analysis API
+export const searchStock = async (symbol) => {
+  try {
+    const response = await axios.post(`${API_URL}/stocks/search`, { symbol });
+    return { success: true, stock: response.data.stock };
+  } catch (error) {
+    console.error(`Error searching for stock ${symbol}:`, error);
+    return {
+      success: false,
+      error: error.response?.data?.error || 'Failed to find stock data',
+    };
+  }
+};
+
+// Search for a stock in the database
+export const searchLiveStock = async (symbol) => {
+  try {
+    const response = await axios.post(`${API_URL}/live-stocks/search`, { symbol });
+    console.log('API response for stock search:', response.data);
+    return { 
+      success: true, 
+      stock: response.data.stock,
+      source: response.data.source
+    };
+  } catch (error) {
+    console.error('Error searching for stock:', error);
+    if (error.response && error.response.data) {
+      console.error('Error details:', error.response.data);
+      return {
+        success: false,
+        error: error.response.data.error || 'Failed to search for stock'
+      };
+    }
+    return {
+      success: false,
+      error: 'Failed to search for stock. Please try again later.'
+    };
+  }
+};
+
+export const getLiveStockDetails = async (symbol) => {
+  try {
+    const response = await axios.get(`${API_URL}/live-stocks/details/${symbol}`);
+    return { 
+      success: true, 
+      stock: response.data.stock,
+      source: response.data.source 
+    };
+  } catch (error) {
+    console.error(`Error getting stock details for ${symbol}:`, error);
+    return {
+      success: false,
+      error: error.response?.data?.error || 'Failed to fetch stock details',
+    };
+  }
+};
+
+export const getLiveStockHistory = async (symbol, period = '1mo') => {
+  try {
+    const response = await axios.get(`${API_URL}/live-stocks/history/${symbol}`, {
+      params: { period }
+    });
+    return { 
+      success: true, 
+      symbol: response.data.symbol,
+      period: response.data.period,
+      history: response.data.history || [],
+      message: response.data.message,
+      source: response.data.source 
+    };
+  } catch (error) {
+    console.error(`Error getting history for ${symbol}:`, error);
+    return {
+      success: false,
+      error: error.response?.data?.error || 'Failed to fetch stock history',
+    };
+  }
 }; 

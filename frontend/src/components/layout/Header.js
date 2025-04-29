@@ -17,6 +17,7 @@ import {
 import MenuIcon from '@mui/icons-material/Menu';
 import NotificationsIcon from '@mui/icons-material/Notifications';
 import ShowChartIcon from '@mui/icons-material/ShowChart';
+import TrendingUpIcon from '@mui/icons-material/TrendingUp';
 import { useAuth } from '../../context/AuthContext';
 import { logout } from '../../services/authService';
 
@@ -54,6 +55,7 @@ const Header = () => {
   const navItems = [
     { title: 'Dashboard', path: '/' },
     { title: 'Recommendations', path: '/recommendations' },
+    { title: 'Live Analysis', path: '/live-analysis' },
   ];
   
   const userMenuItems = [
@@ -159,6 +161,7 @@ const Header = () => {
                   component={RouterLink}
                   to={item.path}
                   sx={{ my: 2, color: 'white', display: 'block' }}
+                  startIcon={item.title === 'Live Analysis' ? <TrendingUpIcon /> : null}
                 >
                   {item.title}
                 </Button>

@@ -15,6 +15,7 @@ import StockDetails from './pages/StockDetails';
 import Recommendations from './pages/Recommendations';
 import Notifications from './pages/Notifications';
 import Profile from './pages/Profile';
+import LiveAnalysis from './pages/LiveAnalysis';
 import NotFound from './pages/NotFound';
 
 // Context
@@ -85,6 +86,14 @@ function App() {
                 element={
                   <ProtectedRoute>
                     <Recommendations />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/live-analysis"
+                element={
+                  <ProtectedRoute>
+                    <LiveAnalysis />
                   </ProtectedRoute>
                 }
               />
