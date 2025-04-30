@@ -161,7 +161,7 @@ const Header = () => {
                   component={RouterLink}
                   to={item.path}
                   sx={{ my: 2, color: 'white', display: 'block' }}
-                  startIcon={item.title === 'Live Analysis' ? <TrendingUpIcon /> : null}
+                  startIcon={item.title === 'Live Analysis' ? '' : null}
                 >
                   {item.title}
                 </Button>
