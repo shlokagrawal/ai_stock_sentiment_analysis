@@ -1,3 +1,5 @@
+#backend/setup_database.py
+
 import os
 import sys
 from datetime import datetime, timedelta
@@ -67,6 +69,7 @@ class SentimentData(db.Model):
     __tablename__ = 'sentiment_data'
     
     id = db.Column(db.Integer, primary_key=True)
+    stock_symbol = db.Column(db.String(20), nullable=False)
     stock_id = db.Column(db.Integer, db.ForeignKey('stocks.id'), nullable=False)
     source = db.Column(db.String(100), nullable=False)
     title = db.Column(db.String(255))

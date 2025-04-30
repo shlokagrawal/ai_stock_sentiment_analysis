@@ -1,3 +1,6 @@
+// This file contains functions to handle user authentication, including registration, login, logout, and profile management.
+// from frontend/src/services/apiService.js
+
 import axios from 'axios';
 import { jwtDecode } from 'jwt-decode';
 

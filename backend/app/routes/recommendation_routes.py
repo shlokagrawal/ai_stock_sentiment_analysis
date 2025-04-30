@@ -1,3 +1,5 @@
+#app/routes/recommendation_routes.py
+
 from flask import Blueprint, request, jsonify
 from app.models.db import db
 from app.models.stock import Stock
@@ -9,54 +11,51 @@ from datetime import datetime, timedelta
 
 recommendation_bp = Blueprint('recommendations', __name__)
 
-@recommendation_bp.route('/stock/<int:stock_id>', methods=['GET'])
+
+
+@recommendation_bp.route('/stock/<string:symbol>', methods=['GET'])
 @token_required
-def get_stock_recommendation(current_user, stock_id):
-    """Get recommendation for a specific stock"""
-    # Verify stock exists
-    stock = Stock.query.get_or_404(stock_id)
-    
-    # Check if recent recommendation exists in database
+def fetch_stock_recommendation_by_symbol(current_user, symbol):
+    """Get recommendation for a stock using SYMBOL instead of stock_id"""
+    stock = Stock.query.filter_by(symbol=symbol.upper()).first()
+    if not stock:
+        return jsonify({'error': f'Stock with symbol {symbol} not found'}), 404
+
     days = request.args.get('days', default=7, type=int)
-    from_date = datetime.utcnow() - timedelta(days=1)  # Only use recommendations from the last day
-    
+    from_date = datetime.utcnow() - timedelta(days=1)
+
     recent_recommendation = Recommendation.query.filter_by(
-        stock_id=stock_id
+        stock_id=stock.id
     ).filter(
         Recommendation.created_at >= from_date
     ).order_by(
         Recommendation.created_at.desc()
     ).first()
-    
+
     if recent_recommendation:
         return jsonify({
             'stock': stock.to_dict(),
             'recommendation': recent_recommendation.to_dict(),
             'is_cached': True
         }), 200
-    
-    # Generate new recommendation
-    recommendation_data = generate_recommendation(stock_id, days=days)
-    
+
+    recommendation_data = generate_recommendation(stock.id, days=days)
+
     if not recommendation_data:
-        return jsonify({
-            'error': 'Failed to generate recommendation'
-        }), 500
-    
-    # Save recommendation to database
+        return jsonify({'error': 'Failed to generate recommendation'}), 500
+
     new_recommendation = Recommendation(
-        stock_id=stock_id,
+        stock_id=stock.id,
         type=recommendation_data['type'],
         confidence_score=recommendation_data['confidence_score'],
         reason=recommendation_data['reason'],
         price_target=recommendation_data.get('price_target'),
         time_frame=recommendation_data.get('time_frame', 'short-term')
     )
-    
+
     db.session.add(new_recommendation)
     db.session.commit()
-    
-    # Return recommendation
+
     return jsonify({
         'stock': stock.to_dict(),
         'recommendation': new_recommendation.to_dict(),
@@ -70,15 +69,11 @@ def get_top_stock_recommendations(current_user):
     """Get top stock recommendations"""
     limit = request.args.get('limit', default=5, type=int)
     
-    # Get top recommendations
     top_recommendations = get_top_recommendations(limit=limit, user_id=current_user.id)
     
     if not top_recommendations:
-        return jsonify({
-            'error': 'Failed to generate top recommendations'
-        }), 500
+        return jsonify({'error': 'Failed to generate top recommendations'}), 500
     
-    # Get stock details for each recommendation
     recommendations_with_stocks = []
     
     for rec in top_recommendations:
@@ -97,13 +92,9 @@ def get_top_stock_recommendations(current_user):
 @token_required
 def get_recommendation_history(current_user, stock_id):
     """Get recommendation history for a stock"""
-    # Verify stock exists
     stock = Stock.query.get_or_404(stock_id)
     
-    # Get time range from query params
     days = request.args.get('days', default=30, type=int)
-    
-    # Get recommendation history
     from_date = datetime.utcnow() - timedelta(days=days)
     
     recommendation_history = Recommendation.query.filter_by(
@@ -135,16 +126,13 @@ def compare_stock_recommendations(current_user):
     if not stock_ids or not isinstance(stock_ids, list):
         return jsonify({'error': 'Invalid stock IDs format'}), 400
     
-    # Get recommendations for each stock
     recommendations = []
     
     for stock_id in stock_ids:
-        # Verify stock exists
         stock = Stock.query.get(stock_id)
         if not stock:
             continue
         
-        # Generate recommendation
         recommendation_data = generate_recommendation(stock_id, days=days)
         
         if recommendation_data:
@@ -154,11 +142,8 @@ def compare_stock_recommendations(current_user):
             })
     
     if not recommendations:
-        return jsonify({
-            'error': 'Failed to generate recommendations for the specified stocks'
-        }), 500
+        return jsonify({'error': 'Failed to generate recommendations for the specified stocks'}), 500
     
-    # Sort by confidence score and recommendation type
     recommendations.sort(key=lambda x: (
         1 if x['recommendation']['type'] == 'buy' else 0,
         x['recommendation']['confidence_score']
@@ -172,15 +157,10 @@ def compare_stock_recommendations(current_user):
 @token_required
 def get_all_recommendations(current_user):
     """Get recent recommendations for all stocks"""
-    # Get time range from query params
     days = request.args.get('days', default=1, type=int)
-    
-    # Get recent recommendations
     from_date = datetime.utcnow() - timedelta(days=days)
     
-    # Get latest recommendation for each stock
     stocks = Stock.query.all()
-    
     recommendations = []
     
     for stock in stocks:
@@ -200,4 +180,4 @@ def get_all_recommendations(current_user):
     
     return jsonify({
         'recommendations': recommendations
-    }), 200 
+    }), 200

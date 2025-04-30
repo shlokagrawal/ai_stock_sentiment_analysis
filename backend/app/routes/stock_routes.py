@@ -1,3 +1,6 @@
+#app/routes/stock_routes.py
+
+
 from flask import Blueprint, request, jsonify
 from app.models.db import db
 from app.models.stock import Stock, user_stocks

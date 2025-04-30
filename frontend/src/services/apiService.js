@@ -1,57 +1,52 @@
 import axios from 'axios';
 
 const API_URL = 'http://localhost:5000/api';
+
+const getToken = () => localStorage.getItem('token');
+
+const setAuthHeader = () => {
+  const token = getToken();
+  if (token) {
+    axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
+  }
+};
+setAuthHeader();
+
 // Stocks API
 export const getStocks = async (params = {}) => {
   try {
     const response = await axios.get(`${API_URL}/stocks`, { params });
     return { success: true, stocks: response.data.stocks };
   } catch (error) {
-    console.error('Error fetching stocks:', error);
-    return {
-      success: false,
-      error: error.response?.data?.error || 'Failed to fetch stocks',
-    };
+    return { success: false, error: error.response?.data?.error || 'Failed to fetch stocks' };
   }
 };
 
-export const getStockById = async (stockId) => {
+export const getStockBySymbol = async (symbol) => {
   try {
-    const response = await axios.get(`${API_URL}/stocks/${stockId}`);
+    const response = await axios.get(`${API_URL}/stocks/${symbol}`);
     return { success: true, stock: response.data.stock };
   } catch (error) {
-    console.error(`Error fetching stock ${stockId}:`, error);
-    return {
-      success: false,
-      error: error.response?.data?.error || 'Failed to fetch stock details',
-    };
+    return { success: false, error: error.response?.data?.error || 'Failed to fetch stock details' };
   }
 };
 
-export const refreshStockData = async (stockId) => {
+export const refreshStockData = async (symbol) => {
   try {
-    const response = await axios.post(`${API_URL}/stocks/refresh/${stockId}`);
+    const response = await axios.post(`${API_URL}/stocks/refresh/${symbol}`);
     return { success: true, stock: response.data.stock };
   } catch (error) {
-    console.error(`Error refreshing stock ${stockId}:`, error);
-    return {
-      success: false,
-      error: error.response?.data?.error || 'Failed to refresh stock data',
-    };
+    return { success: false, error: error.response?.data?.error || 'Failed to refresh stock data' };
   }
 };
 
-// Watchlist API
+// Watchlist API (if still using stockId)
 export const getWatchlist = async () => {
   try {
     const response = await axios.get(`${API_URL}/stocks/watchlist`);
     return { success: true, watchlist: response.data.watchlist };
   } catch (error) {
-    console.error('Error fetching watchlist:', error);
-    return {
-      success: false,
-      error: error.response?.data?.error || 'Failed to fetch watchlist',
-    };
+    return { success: false, error: error.response?.data?.error || 'Failed to fetch watchlist' };
   }
 };
 
@@ -60,11 +55,7 @@ export const addToWatchlist = async (stockId) => {
     const response = await axios.post(`${API_URL}/stocks/watchlist/${stockId}`);
     return { success: true, message: response.data.message };
   } catch (error) {
-    console.error(`Error adding stock ${stockId} to watchlist:`, error);
-    return {
-      success: false,
-      error: error.response?.data?.error || 'Failed to add stock to watchlist',
-    };
+    return { success: false, error: error.response?.data?.error || 'Failed to add to watchlist' };
   }
 };
 
@@ -73,11 +64,7 @@ export const removeFromWatchlist = async (stockId) => {
     const response = await axios.delete(`${API_URL}/stocks/watchlist/${stockId}`);
     return { success: true, message: response.data.message };
   } catch (error) {
-    console.error(`Error removing stock ${stockId} from watchlist:`, error);
-    return {
-      success: false,
-      error: error.response?.data?.error || 'Failed to remove stock from watchlist',
-    };
+    return { success: false, error: error.response?.data?.error || 'Failed to remove from watchlist' };
   }
 };
 
@@ -87,17 +74,13 @@ export const analyzeSentiment = async (text) => {
     const response = await axios.post(`${API_URL}/sentiment/analyze`, { text });
     return { success: true, sentiment: response.data.sentiment };
   } catch (error) {
-    console.error('Error analyzing sentiment:', error);
-    return {
-      success: false,
-      error: error.response?.data?.error || 'Failed to analyze sentiment',
-    };
+    return { success: false, error: error.response?.data?.error || 'Failed to analyze sentiment' };
   }
 };
 
-export const getStockSentiment = async (stockId, days = 7) => {
+export const getStockSentiment = async (symbol, days = 7) => {
   try {
-    const response = await axios.get(`${API_URL}/sentiment/stock/${stockId}`, {
+    const response = await axios.get(`${API_URL}/sentiment/stock/${symbol}`, {
       params: { days },
     });
     return {
@@ -107,17 +90,13 @@ export const getStockSentiment = async (stockId, days = 7) => {
       dataPoints: response.data.data_points,
     };
   } catch (error) {
-    console.error(`Error fetching sentiment for stock ${stockId}:`, error);
-    return {
-      success: false,
-      error: error.response?.data?.error || 'Failed to fetch sentiment data',
-    };
+    return { success: false, error: error.response?.data?.error || 'Failed to fetch sentiment data' };
   }
 };
 
-export const getAggregateSentiment = async (stockId, days = 7) => {
+export const getAggregateSentiment = async (symbol, days = 7) => {
   try {
-    const response = await axios.get(`${API_URL}/sentiment/stock/${stockId}/aggregate`, {
+    const response = await axios.get(`${API_URL}/sentiment/stock/${symbol}/aggregate`, {
       params: { days },
     });
     return {
@@ -126,35 +105,27 @@ export const getAggregateSentiment = async (stockId, days = 7) => {
       aggregatedSentiment: response.data.aggregated_sentiment,
     };
   } catch (error) {
-    console.error(`Error fetching aggregate sentiment for stock ${stockId}:`, error);
-    return {
-      success: false,
-      error: error.response?.data?.error || 'Failed to fetch aggregated sentiment',
-    };
+    return { success: false, error: error.response?.data?.error || 'Failed to fetch aggregate sentiment' };
   }
 };
 
-export const refreshSentiment = async (stockId) => {
+export const refreshSentiment = async (symbol) => {
   try {
-    const response = await axios.post(`${API_URL}/sentiment/stock/${stockId}/refresh`);
+    const response = await axios.post(`${API_URL}/sentiment/stock/${symbol}/refresh`);
     return {
       success: true,
       message: response.data.message,
-      newRecords: response.data.new_records,
+      newRecords: response.data.new_items || 0,
     };
   } catch (error) {
-    console.error(`Error refreshing sentiment for stock ${stockId}:`, error);
-    return {
-      success: false,
-      error: error.response?.data?.error || 'Failed to refresh sentiment data',
-    };
+    return { success: false, error: error.response?.data?.error || 'Failed to refresh sentiment data' };
   }
 };
 
-// Recommendations API
-export const getStockRecommendation = async (stockId, days = 7) => {
+// Recommendation API
+export const getStockRecommendation = async (symbol, days = 7) => {
   try {
-    const response = await axios.get(`${API_URL}/recommendations/stock/${stockId}`, {
+    const response = await axios.get(`${API_URL}/recommendations/stock/${symbol}`, {
       params: { days },
     });
     return {
@@ -165,11 +136,7 @@ export const getStockRecommendation = async (stockId, days = 7) => {
       isCached: response.data.is_cached,
     };
   } catch (error) {
-    console.error(`Error fetching recommendation for stock ${stockId}:`, error);
-    return {
-      success: false,
-      error: error.response?.data?.error || 'Failed to fetch recommendation',
-    };
+    return { success: false, error: error.response?.data?.error || 'Failed to fetch recommendation' };
   }
 };
 
@@ -183,18 +150,14 @@ export const getTopRecommendations = async (limit = 5) => {
       topRecommendations: response.data.top_recommendations,
     };
   } catch (error) {
-    console.error('Error fetching top recommendations:', error);
-    return {
-      success: false,
-      error: error.response?.data?.error || 'Failed to fetch top recommendations',
-    };
+    return { success: false, error: error.response?.data?.error || 'Failed to fetch top recommendations' };
   }
 };
 
-export const compareStocks = async (stockIds, days = 7) => {
+export const compareStocks = async (symbols, days = 7) => {
   try {
     const response = await axios.post(`${API_URL}/recommendations/compare`, {
-      stock_ids: stockIds,
+      symbols,
       days,
     });
     return {
@@ -202,89 +165,51 @@ export const compareStocks = async (stockIds, days = 7) => {
       recommendations: response.data.recommendations,
     };
   } catch (error) {
-    console.error('Error comparing stocks:', error);
-    return {
-      success: false,
-      error: error.response?.data?.error || 'Failed to compare stocks',
-    };
+    return { success: false, error: error.response?.data?.error || 'Failed to compare stocks' };
   }
 };
 
-// Live Analysis API
-export const searchStock = async (symbol) => {
-  try {
-    const response = await axios.post(`${API_URL}/stocks/search`, { symbol });
-    return { success: true, stock: response.data.stock };
-  } catch (error) {
-    console.error(`Error searching for stock ${symbol}:`, error);
-    return {
-      success: false,
-      error: error.response?.data?.error || 'Failed to find stock data',
-    };
-  }
-};
-
-// Search for a stock in the database
+// Live Stock API
 export const searchLiveStock = async (symbol) => {
   try {
     const response = await axios.post(`${API_URL}/live-stocks/search`, { symbol });
-    console.log('API response for stock search:', response.data);
-    return { 
-      success: true, 
+    return {
+      success: true,
       stock: response.data.stock,
-      source: response.data.source
+      source: response.data.source,
+      message: response.data.message,
     };
   } catch (error) {
-    console.error('Error searching for stock:', error);
-    if (error.response && error.response.data) {
-      console.error('Error details:', error.response.data);
-      return {
-        success: false,
-        error: error.response.data.error || 'Failed to search for stock'
-      };
-    }
-    return {
-      success: false,
-      error: 'Failed to search for stock. Please try again later.'
-    };
+    return { success: false, error: error.response?.data?.error || 'Failed to search for stock' };
   }
 };
 
 export const getLiveStockDetails = async (symbol) => {
   try {
     const response = await axios.get(`${API_URL}/live-stocks/details/${symbol}`);
-    return { 
-      success: true, 
+    return {
+      success: true,
       stock: response.data.stock,
-      source: response.data.source 
+      source: response.data.source,
     };
   } catch (error) {
-    console.error(`Error getting stock details for ${symbol}:`, error);
-    return {
-      success: false,
-      error: error.response?.data?.error || 'Failed to fetch stock details',
-    };
+    return { success: false, error: error.response?.data?.error || 'Failed to fetch stock details' };
   }
 };
 
 export const getLiveStockHistory = async (symbol, period = '1mo') => {
   try {
     const response = await axios.get(`${API_URL}/live-stocks/history/${symbol}`, {
-      params: { period }
+      params: { period },
     });
-    return { 
-      success: true, 
+    return {
+      success: true,
       symbol: response.data.symbol,
       period: response.data.period,
       history: response.data.history || [],
-      message: response.data.message,
-      source: response.data.source 
+      source: response.data.source,
     };
   } catch (error) {
-    console.error(`Error getting history for ${symbol}:`, error);
-    return {
-      success: false,
-      error: error.response?.data?.error || 'Failed to fetch stock history',
-    };
+    return { success: false, error: error.response?.data?.error || 'Failed to fetch stock history' };
   }
-}; 
+};

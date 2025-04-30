@@ -1,3 +1,5 @@
+#app/models/stock.py
+
 from app.models.db import db
 from datetime import datetime
 

@@ -1,3 +1,5 @@
+//from frontend/src/pages/LiveAnalysis.js
+
 import React, { useState } from 'react';
 import {
   Container,
@@ -25,7 +27,10 @@ import {
   getAggregateSentiment,
   getStockRecommendation,
   getLiveStockDetails,
-  getLiveStockHistory
+  getLiveStockHistory,  
+  getRefreshSentiment,
+  refreshSentiment,
+  loadSentimentData
 } from '../services/apiService';
 
 const LiveAnalysis = () => {
@@ -68,15 +73,17 @@ const LiveAnalysis = () => {
         
         // If this is a new stock from Yahoo Finance
         if (result.source === 'yahoo_finance' || result.source === 'yahoo_finance_only') {
-          // Show a message to the user about sentiment and recommendations being generated
-          setError(result.message || 'New stock added. Sentiment and recommendations will be available soon.');
+         
+          await refreshSentiment(result.stock.symbol); // <-- This triggers scraping
+          await new Promise((resolve) => setTimeout(resolve, 3000)); // wait 3s
+          await loadSentimentData(result.stock.symbol); // <-- Now reload data
         } else {
-          // For existing stocks, load sentiment and recommendation data
           await Promise.all([
-            loadSentimentData(result.stock.id),
-            loadRecommendationData(result.stock.id)
+            loadSentimentData(result.stock.symbol),
+            loadRecommendationData(result.stock.symbol)
           ]);
         }
+        
         
         // Load additional stock details and history
         if (result.stock.symbol) {
@@ -96,17 +103,24 @@ const LiveAnalysis = () => {
     }
   };
   
-  const loadSentimentData = async (stockId) => {
+  let retryCount = 0;
+
+  const loadSentimentData = async (symbol) => {
     try {
       const [sentimentResult, aggregateResult] = await Promise.all([
-        getStockSentiment(stockId),
-        getAggregateSentiment(stockId)
+        getStockSentiment(symbol),
+        getAggregateSentiment(symbol)
       ]);
-      
+  
       if (sentimentResult.success) {
         setSentimentData(sentimentResult.sentimentData || []);
+      } else if (retryCount < 1 && sentimentResult.error?.includes("No sentiment data")) {
+        await refreshSentiment(symbol);
+        retryCount++;
+        setTimeout(() => loadSentimentData(symbol), 3000);
+        return;
       }
-      
+  
       if (aggregateResult.success) {
         setAggregateSentiment(aggregateResult.aggregatedSentiment);
       }
@@ -115,10 +129,10 @@ const LiveAnalysis = () => {
     }
   };
   
-  const loadRecommendationData = async (stockId) => {
+  
+  const loadRecommendationData = async (symbol) => {
     try {
-      const result = await getStockRecommendation(stockId);
-      
+      const result = await getStockRecommendation(symbol); // ✅ pass symbol here
       if (result.success) {
         setRecommendation(result.recommendation);
       }
@@ -126,6 +140,7 @@ const LiveAnalysis = () => {
       console.error('Error loading recommendation data:', err);
     }
   };
+  
   
   const loadStockDetails = async (symbol) => {
     setLoadingDetails(true);

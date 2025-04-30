@@ -1,3 +1,6 @@
+#app/models/recommendation.py
+# app/models/recommendation.py
+
 from app.models.db import db
 from datetime import datetime
 

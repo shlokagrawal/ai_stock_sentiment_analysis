@@ -1,3 +1,6 @@
+
+# app/models/user.py
+
 from app.models.db import db
 from datetime import datetime
 import hashlib

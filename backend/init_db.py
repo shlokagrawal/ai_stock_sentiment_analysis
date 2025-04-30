@@ -1,3 +1,5 @@
+#backend/init_db.py
+
 import os
 import sys
 from datetime import datetime, timedelta
@@ -212,6 +214,7 @@ def create_sample_data():
                     # Create a sentiment record
                     sentiment_record = SentimentData(
                         stock_id=stock.id,
+                        stock_symbol = stock.symbol,
                         source=random.choice(sources),
                         title=f"Sample news about {stock.name}",
                         content=f"This is sample sentiment data for {stock.symbol} with a {sentiment_label} sentiment.",

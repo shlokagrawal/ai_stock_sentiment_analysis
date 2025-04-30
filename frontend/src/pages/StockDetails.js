@@ -1,3 +1,5 @@
+// src/pages/StockDetails.js
+
 import React, { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
 import {
@@ -19,12 +21,14 @@ import {
   ListItemText,
 } from '@mui/material';
 import { 
-  getStockById, 
+  getStockBySymbol, 
   refreshStockData, 
   getStockSentiment, 
   getAggregateSentiment,
   refreshSentiment,
-  getStockRecommendation
+  getStockRecommendation,
+  loadSentimentData,
+  loadRecommendationData
 } from '../services/apiService';
 
 const StockDetails = () => {
@@ -49,7 +53,7 @@ const StockDetails = () => {
     const loadStockData = async () => {
       setLoading(true);
       try {
-        const result = await getStockById(stockId);
+        const result = await getStockBySymbol(stockId);
         if (result.success) {
           setStock(result.stock);
         } else {
@@ -68,9 +72,10 @@ const StockDetails = () => {
   
   // Load sentiment data when switching to sentiment tab
   useEffect(() => {
-    if (activeTab === 1 && stockId) {
-      loadSentimentData();
+    if (activeTab === 1 && stock && stock.symbol) {
+      loadSentimentData(stock.symbol);
     }
+    
   }, [activeTab, stockId]);
   
   // Load recommendation data when switching to recommendations tab
@@ -80,25 +85,31 @@ const StockDetails = () => {
     }
   }, [activeTab, stockId]);
   
-  const loadSentimentData = async () => {
+  const loadSentimentData = async (symbol) => {
     setSentimentLoading(true);
     setSentimentError('');
-    
+  
     try {
-      // Load both detailed sentiment and aggregate sentiment
       const [sentimentResult, aggregateResult] = await Promise.all([
-        getStockSentiment(stockId),
-        getAggregateSentiment(stockId)
+        getStockSentiment(symbol),
+        getAggregateSentiment(symbol)
       ]);
-      
+  
       if (sentimentResult.success) {
         setSentimentData(sentimentResult.sentimentData || []);
-      } else {
-        setSentimentError('Failed to load sentiment data');
+      } else if (sentimentResult.error?.includes("No sentiment data")) {
+        console.warn("No sentiment found, refreshing...");
+        await refreshSentiment(symbol);
+        setTimeout(() => loadSentimentData(symbol), 3000); // retry after 3s
+        return;
       }
-      
+  
       if (aggregateResult.success) {
         setAggregateSentiment(aggregateResult.aggregatedSentiment);
+      } else if (aggregateResult.error?.includes("No sentiment data")) {
+        console.warn("No aggregate sentiment found, refreshing...");
+        await refreshSentiment(symbol);
+        setTimeout(() => loadSentimentData(symbol), 3000); // retry after 3s
       }
     } catch (err) {
       console.error('Error loading sentiment data:', err);
@@ -108,12 +119,13 @@ const StockDetails = () => {
     }
   };
   
+  
   const loadRecommendationData = async () => {
     setRecommendationLoading(true);
     setRecommendationError('');
     
     try {
-      const result = await getStockRecommendation(stockId);
+      const result = await getStockRecommendation(stock.symbol);
       
       if (result.success) {
         setRecommendation(result.recommendation);
@@ -132,7 +144,8 @@ const StockDetails = () => {
     setSentimentLoading(true);
     
     try {
-      const result = await refreshSentiment(stockId);
+      const result = await refreshSentiment(stock.symbol);
+
       
       if (result.success) {
         // Reload sentiment data after refresh

@@ -1,3 +1,5 @@
+#app/models/sentiment.py
+
 from app.models.db import db
 from datetime import datetime
 
@@ -6,6 +8,7 @@ class SentimentData(db.Model):
     
     id = db.Column(db.Integer, primary_key=True)
     stock_id = db.Column(db.Integer, db.ForeignKey('stocks.id'), nullable=False)
+    stock_symbol = db.Column(db.String(20), nullable=False)  # <-- important
     source = db.Column(db.String(100), nullable=False)  # news, twitter, reddit, etc.
     title = db.Column(db.String(255))
     content = db.Column(db.Text)
@@ -22,6 +25,7 @@ class SentimentData(db.Model):
         return {
             'id': self.id,
             'stock_id': self.stock_id,
+            'stock_symbol': self.stock_symbol,
             'source': self.source,
             'title': self.title,
             'content': self.content,
