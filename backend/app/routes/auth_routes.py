@@ -6,7 +6,7 @@ from app.models.user import User
 from app.utils.auth import generate_token, token_required
 import re
 
-auth_bp = Blueprint('auth', __name__)
+auth_bp = Blueprint('auth', __name__, url_prefix='/api/auth')
 
 @auth_bp.route('/register', methods=['POST'])
 def register():

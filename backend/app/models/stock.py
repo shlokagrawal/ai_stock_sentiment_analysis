@@ -2,6 +2,7 @@
 
 from app.models.db import db
 from datetime import datetime
+from app.models.recommendation import Recommendation
 
 # User-Stock association table for watchlist
 user_stocks = db.Table('user_stocks',

@@ -3,11 +3,43 @@
 from flask import Blueprint, request, jsonify
 from app.models.db import db
 from app.models.sentiment import SentimentData
+from app.models.stock import Stock
 from app.services.sentiment_service import analyze_text, scrape_news, aggregate_sentiment
 from app.utils.auth import token_required
 from datetime import datetime, timedelta
 
-sentiment_bp = Blueprint('sentiment', __name__)
+sentiment_bp = Blueprint('sentiment', __name__, url_prefix='/api/sentiment')
+
+@sentiment_bp.route('/', methods=['POST'])
+@token_required
+def add_sentiment(current_user):
+    """Add sentiment data for a stock"""
+    data = request.get_json()
+    
+    if not all(k in data for k in ('stock_symbol', 'sentiment_score', 'source', 'text')):
+        return jsonify({'error': 'Missing required fields'}), 400
+    
+    # Get or create stock
+    stock = Stock.query.filter_by(symbol=data['stock_symbol']).first()
+    if not stock:
+        return jsonify({'error': 'Stock not found'}), 404
+    
+    # Create sentiment data
+    sentiment = SentimentData(
+        stock_symbol=data['stock_symbol'],
+        sentiment_score=data['sentiment_score'],
+        source=data['source'],
+        text=data['text'],
+        stock_id=stock.id
+    )
+    
+    db.session.add(sentiment)
+    db.session.commit()
+    
+    return jsonify({
+        'message': 'Sentiment data added successfully',
+        'sentiment': sentiment.to_dict()
+    }), 201
 
 @sentiment_bp.route('/analyze', methods=['POST'])
 @token_required
@@ -36,6 +68,11 @@ def get_stock_sentiment(current_user, symbol):
     symbol = symbol.upper()
     days = request.args.get('days', default=7, type=int)
     from_date = datetime.utcnow() - timedelta(days=days)
+    
+    # Check if stock exists
+    stock = Stock.query.filter_by(symbol=symbol).first()
+    if not stock:
+        return jsonify({'error': 'Stock not found'}), 404
     
     sentiment_records = SentimentData.query.filter_by(
         stock_symbol=symbol

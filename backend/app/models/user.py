@@ -1,9 +1,9 @@
-
 # app/models/user.py
 
 from app.models.db import db
 from datetime import datetime
 import hashlib
+from app.models.notification import Notification
 
 class User(db.Model):
     __tablename__ = 'users'
