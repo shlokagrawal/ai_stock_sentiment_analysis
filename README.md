@@ -46,7 +46,7 @@ A full-stack web application designed to assist investors and financial analysts
 1. Navigate to the frontend directory: `cd frontend`
 2. Install dependencies: `npm install`
 3. Start the development server: `npm start`
-4. if any error comes regarding version of node js - run export NODE\_OPTIONS=--openssl-legacy-provider.
+4. If any error comes regarding version of node js please run this command on terminal - export NODE\_OPTIONS=--openssl-legacy-provider.
 
 
 
