@@ -40,3 +40,9 @@ backend/.env
 
 # Ignore frontend node_modules
 frontend/node_modules/
+# .gitignore
+frontend/coverage/
+
+
+Final_System_Test_Cases.xlsx
+Functional_Final_Test Cases.xlsx

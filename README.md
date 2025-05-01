@@ -13,11 +13,13 @@ A full-stack web application designed to assist investors and financial analysts
 ## Setup Instructions
 
 ### Prerequisites
+
 - Python 3.8+
 - Node.js 14+
 - MySQL
 
 ### Backend Setup
+
 1. Navigate to the backend directory: `cd backend`
 2. Create a virtual environment: `python -m venv venv`
 3. Activate the virtual environment:
@@ -28,16 +30,29 @@ A full-stack web application designed to assist investors and financial analysts
 6. Set up MySQL database:
    - Create a database named `stock_sentiment`
    - Update database credentials in `.env`
+   - Run the following SQL commands to reset tables and update schema:
+     ```sql
+     DELETE FROM sentiment_data;
+     DELETE FROM recommendations;
+     DELETE FROM notifications;
+
+     ALTER TABLE sentiment_data ADD COLUMN stock_symbol VARCHAR(20);
+     ```
 7. Run migrations: `python manage.py migrate`
 8. Run the server: `python app.py`
 
 ### Frontend Setup
+
 1. Navigate to the frontend directory: `cd frontend`
 2. Install dependencies: `npm install`
 3. Start the development server: `npm start`
+4. if any error comes regarding version of node js - run export NODE\_OPTIONS=--openssl-legacy-provider.
+
+
 
 ## Features
+
 - Sentiment analysis on stock data
 - Real-time alerts
 - Stock trend visualization
-- Investment recommendations 
+- Investment recommendations
