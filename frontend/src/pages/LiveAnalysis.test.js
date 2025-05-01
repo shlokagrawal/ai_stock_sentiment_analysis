@@ -158,3 +158,146 @@ describe('LiveAnalysis Component - Full Coverage and Integration', () => {
     );
   });
 });
+
+
+//// new ones//
+// new test cases
+
+test('handles yahoo_finance source and calls refresh + reload sentiment', async () => {
+  const testSymbol = 'YFNEW';
+
+  apiService.searchLiveStock.mockResolvedValue({
+    success: true,
+    stock: { symbol: testSymbol, name: 'Yahoo Test', current_price: 150, sector: 'Finance' },
+    source: 'yahoo_finance'
+  });
+
+  apiService.refreshSentiment.mockResolvedValue({ success: true });
+  apiService.getStockSentiment.mockResolvedValue({ success: true, sentimentData: [] });
+  apiService.getAggregateSentiment.mockResolvedValue({ 
+    success: true, 
+    aggregatedSentiment: { sentiment_label: 'neutral', compound_score: 0, positive_score: 0.3, neutral_score: 0.6, negative_score: 0.1 }
+  });
+  apiService.getStockRecommendation.mockResolvedValue({ success: true, recommendation: null });
+  apiService.getLiveStockDetails.mockResolvedValue({ success: true, stock: {} });
+  apiService.getLiveStockHistory.mockResolvedValue({ success: true, history: [] });
+
+  render(<Router><LiveAnalysis /></Router>);
+  fireEvent.change(screen.getByLabelText(/stock symbol/i), { target: { value: testSymbol } });
+  fireEvent.click(screen.getByRole('button', { name: /analyze stock/i }));
+
+  await waitFor(() =>
+    expect(apiService.refreshSentiment).toHaveBeenCalledWith(testSymbol)
+  );
+ 
+  
+  
+  
+});
+
+test('triggers setError and console.error on search failure', async () => {
+  const consoleSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
+  
+  apiService.searchLiveStock.mockRejectedValue(new Error('Network failed'));
+
+  render(<Router><LiveAnalysis /></Router>);
+  fireEvent.change(screen.getByLabelText(/stock symbol/i), { target: { value: 'FAIL' } });
+  fireEvent.click(screen.getByRole('button', { name: /analyze stock/i }));
+
+  await waitFor(() => {
+    expect(consoleSpy).toHaveBeenCalledWith(
+      'Error in live analysis:',
+      expect.any(Error)
+    );
+    expect(screen.getByText(/an error occurred while analyzing the stock/i)).toBeInTheDocument();
+  });
+
+  consoleSpy.mockRestore();
+});
+
+test('logs error when sentiment loading fails', async () => {
+  const consoleSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
+
+  apiService.searchLiveStock.mockResolvedValue({
+    success: true,
+    stock: { symbol: 'ERR1', name: 'ErrorCo', current_price: 100 },
+    source: 'cache'
+  });
+
+  apiService.getStockSentiment.mockRejectedValue(new Error('Sentiment API down'));
+  apiService.getAggregateSentiment.mockResolvedValue({ success: false });
+  apiService.getStockRecommendation.mockResolvedValue({ success: false });
+  apiService.getLiveStockDetails.mockResolvedValue({ success: false });
+  apiService.getLiveStockHistory.mockResolvedValue({ success: false });
+
+  render(<Router><LiveAnalysis /></Router>);
+  fireEvent.change(screen.getByLabelText(/stock symbol/i), { target: { value: 'ERR1' } });
+  fireEvent.click(screen.getByRole('button', { name: /analyze stock/i }));
+
+  await waitFor(() => {
+    expect(consoleSpy).toHaveBeenCalledWith(
+      'Error loading sentiment data:',
+      expect.any(Error)
+    );
+  });
+
+  consoleSpy.mockRestore();
+});
+
+test('logs error when recommendation data loading fails', async () => {
+  const consoleSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
+
+  apiService.searchLiveStock.mockResolvedValue({
+    success: true,
+    stock: { symbol: 'ERR2', name: 'ErrorRec', current_price: 100 },
+    source: 'cache'
+  });
+
+  apiService.getStockSentiment.mockResolvedValue({ success: true, sentimentData: [] });
+  apiService.getAggregateSentiment.mockResolvedValue({ success: true, aggregatedSentiment: { sentiment_label: 'neutral', compound_score: 0, positive_score: 0, neutral_score: 1, negative_score: 0 } });
+  apiService.getStockRecommendation.mockRejectedValue(new Error('Recommendation API failed'));
+  apiService.getLiveStockDetails.mockResolvedValue({ success: false });
+  apiService.getLiveStockHistory.mockResolvedValue({ success: false });
+
+  render(<Router><LiveAnalysis /></Router>);
+  fireEvent.change(screen.getByLabelText(/stock symbol/i), { target: { value: 'ERR2' } });
+  fireEvent.click(screen.getByRole('button', { name: /analyze stock/i }));
+
+  await waitFor(() =>
+    expect(consoleSpy).toHaveBeenCalledWith(
+      'Error loading recommendation data:',
+      expect.any(Error)
+    )
+  );
+
+  consoleSpy.mockRestore();
+});
+
+test('logs error when stock details loading fails', async () => {
+  const consoleSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
+
+  apiService.searchLiveStock.mockResolvedValue({
+    success: true,
+    stock: { symbol: 'ERR3', name: 'ErrorDetails', current_price: 100 },
+    source: 'cache'
+  });
+
+  apiService.getStockSentiment.mockResolvedValue({ success: true, sentimentData: [] });
+  apiService.getAggregateSentiment.mockResolvedValue({ success: true, aggregatedSentiment: { sentiment_label: 'positive', compound_score: 0.9, positive_score: 0.9, neutral_score: 0.05, negative_score: 0.05 } });
+  apiService.getStockRecommendation.mockResolvedValue({ success: true, recommendation: null });
+  apiService.getLiveStockDetails.mockRejectedValue(new Error('Details API failed'));
+  apiService.getLiveStockHistory.mockResolvedValue({ success: false });
+
+  render(<Router><LiveAnalysis /></Router>);
+  fireEvent.change(screen.getByLabelText(/stock symbol/i), { target: { value: 'ERR3' } });
+  fireEvent.click(screen.getByRole('button', { name: /analyze stock/i }));
+
+  await waitFor(() =>
+    expect(consoleSpy).toHaveBeenCalledWith(
+      'Error loading stock details:',
+      expect.any(Error)
+    )
+  );
+
+  consoleSpy.mockRestore();
+});
